@@ -3,31 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presupuesto Familiar</title>
+    <title>Presupuesto Familiar - Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
-<body style="font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+<body style="font-family: Arial, sans-serif; max-width: 1400px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
 
-    <h1 style="text-align: center; color: #333; margin-bottom: 30px;">💰 Mi Presupuesto Familiar</h1>
+    <h1 style="text-align: center; color: #333; margin-bottom: 30px;">💰 Mi Presupuesto Familiar - Dashboard</h1>
     
-    <div style="margin-bottom: 20px;">
-        <label>Mes: </label>
-        <select id="mes" onchange="cambiarMes()" style="padding: 8px; margin-right: 15px;">
-            <option value="Enero">Enero</option>
-            <option value="Febrero">Febrero</option>
-            <option value="Marzo">Marzo</option>
-            <option value="Abril">Abril</option>
-            <option value="Mayo">Mayo</option>
-            <option value="Junio">Junio</option>
-            <option value="Julio">Julio</option>
-            <option value="Agosto">Agosto</option>
-            <option value="Septiembre">Septiembre</option>
-            <option value="Octubre">Octubre</option>
-            <option value="Noviembre">Noviembre</option>
-            <option value="Diciembre">Diciembre</option>
-        </select>
+    <!-- CONTROLES -->
+    <div style="margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+        <div>
+            <label>Mes: </label>
+            <select id="mes" onchange="cambiarMes()" style="padding: 8px;">
+                <option value="Enero">Enero</option>
+                <option value="Febrero">Febrero</option>
+                <option value="Marzo">Marzo</option>
+                <option value="Abril">Abril</option>
+                <option value="Mayo">Mayo</option>
+                <option value="Junio">Junio</option>
+                <option value="Julio">Julio</option>
+                <option value="Agosto">Agosto</option>
+                <option value="Septiembre">Septiembre</option>
+                <option value="Octubre">Octubre</option>
+                <option value="Noviembre">Noviembre</option>
+                <option value="Diciembre">Diciembre</option>
+            </select>
+        </div>
         
-        <button onclick="guardar()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; margin-right: 10px; cursor: pointer;">💾 Guardar</button>
+        <button onclick="guardar()" style="padding: 8px 15px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">💾 Guardar</button>
         <button onclick="limpiar()" style="padding: 8px 15px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">🗑️ Limpiar Mes</button>
+        <button onclick="exportarExcel()" style="padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">📊 Exportar Excel</button>
+        <button onclick="toggleDashboard()" id="btnDashboard" style="padding: 8px 15px; background: #6f42c1; color: white; border: none; border-radius: 4px; cursor: pointer;">📈 Ver Dashboard</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="display: none; margin-bottom: 30px;">
+        <!-- KPIs -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="color: #666; font-size: 12px;">% EJECUTADO</div>
+                <div id="porcentajeEjecutado" style="font-size: 24px; font-weight: bold; color: #007bff;">0%</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="color: #666; font-size: 12px;">CATEGORÍA MAYOR GASTO</div>
+                <div id="mayorGasto" style="font-size: 16px; font-weight: bold; color: #dc3545;">-</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="color: #666; font-size: 12px;">DÍAS RESTANTES</div>
+                <div id="diasRestantes" style="font-size: 24px; font-weight: bold; color: #28a745;">-</div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="color: #666; font-size: 12px;">RITMO DE GASTO DIARIO</div>
+                <div id="ritmoGasto" style="font-size: 16px; font-weight: bold; color: #ff8c00;">S/ 0</div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0;">Gastos por Categoría</h4>
+                <canvas id="graficoCategorias" width="400" height="200"></canvas>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <h4 style="margin: 0 0 15px 0;">Presupuesto vs Real</h4>
+                <canvas id="graficoPresupuesto" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- ALERTAS INTELIGENTES -->
+        <div id="alertasInteligentes" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h4 style="margin: 0 0 15px 0;">🚨 Alertas Inteligentes</h4>
+            <div id="contenidoAlertas">No hay alertas por el momento</div>
+        </div>
+
+        <!-- COMPARACIÓN ENTRE MESES -->
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;">
+            <h4 style="margin: 0 0 15px 0;">📊 Tendencia por Meses</h4>
+            <canvas id="graficoTendencias" width="400" height="200"></canvas>
+        </div>
     </div>
 
     <!-- RESUMEN -->
@@ -50,6 +104,7 @@
         </div>
     </div>
 
+    <!-- CATEGORÍAS DE GASTOS -->
     <!-- VIVIENDA -->
     <div style="background: white; margin-bottom: 20px; border-radius: 8px; overflow: hidden;">
         <h3 style="background: #343a40; color: white; margin: 0; padding: 15px;">🏠 VIVIENDA</h3>
@@ -309,21 +364,47 @@
     <script>
         let mesActual = 'Enero';
         let datos = {};
+        let dashboardVisible = false;
+        let graficoCategorias, graficoPresupuesto, graficoTendencias;
+
+        const categorias = {
+            'Vivienda': [1, 2, 3, 4],
+            'Deudas': [5, 6],
+            'Educación': [7, 8, 9],
+            'Alimentación': [10, 11, 12],
+            'Personal': [13, 14, 15, 16],
+            'Comunicaciones': [17, 18, 19],
+            'Transporte': [20, 21],
+            'Entretenimiento': [22, 23],
+            'Mascotas': [24, 25],
+            'Otros': [26]
+        };
+
+        const presupuestoPorCategoria = {
+            'Vivienda': 3115,
+            'Deudas': 2250,
+            'Educación': 3056,
+            'Alimentación': 1390,
+            'Personal': 975,
+            'Comunicaciones': 153,
+            'Transporte': 500,
+            'Entretenimiento': 670,
+            'Mascotas': 560,
+            'Otros': 200
+        };
 
         // Cargar datos guardados
         function cargarDatos() {
-            const guardado = localStorage.getItem('presupuesto-simple');
-            if (guardado) {
-                datos = JSON.parse(guardado);
-                if (datos[mesActual]) {
-                    for (let i = 1; i <= 26; i++) {
-                        const input = document.getElementById('g' + i);
-                        if (input && datos[mesActual]['g' + i]) {
-                            input.value = datos[mesActual]['g' + i];
-                        }
+            const guardado = JSON.parse(localStorage.getItem('presupuesto-dashboard') || '{}');
+            datos = guardado;
+            if (datos[mesActual]) {
+                for (let i = 1; i <= 26; i++) {
+                    const input = document.getElementById('g' + i);
+                    if (input && datos[mesActual]['g' + i]) {
+                        input.value = datos[mesActual]['g' + i];
                     }
-                    calcular();
                 }
+                calcular();
             }
         }
 
@@ -338,7 +419,7 @@
                 }
             }
             
-            localStorage.setItem('presupuesto-simple', JSON.stringify(datos));
+            localStorage.setItem('presupuesto-dashboard', JSON.stringify(datos));
             alert('✅ Datos guardados para ' + mesActual);
         }
 
@@ -350,8 +431,9 @@
                     if (input) input.value = '';
                 }
                 if (datos[mesActual]) delete datos[mesActual];
-                localStorage.setItem('presupuesto-simple', JSON.stringify(datos));
+                localStorage.setItem('presupuesto-dashboard', JSON.stringify(datos));
                 calcular();
+                if (dashboardVisible) actualizarDashboard();
             }
         }
 
@@ -368,6 +450,7 @@
             
             // Cargar datos del nuevo mes
             cargarDatos();
+            if (dashboardVisible) actualizarDashboard();
         }
 
         // Calcular totales
@@ -395,6 +478,370 @@
             } else {
                 alerta.style.display = 'none';
             }
+
+            if (dashboardVisible) actualizarDashboard();
+        }
+
+        // Exportar a Excel
+        function exportarExcel() {
+            const wb = XLSX.utils.book_new();
+            
+            // Hoja 1: Datos del mes actual
+            const datosActuales = [];
+            datosActuales.push(['PRESUPUESTO FAMILIAR - ' + mesActual.toUpperCase(), '', '']);
+            datosActuales.push(['', '', '']);
+            datosActuales.push(['Categoría', 'Presupuestado', 'Real', 'Diferencia']);
+            
+            for (const [categoria, indices] of Object.entries(categorias)) {
+                const presupuesto = presupuestoPorCategoria[categoria];
+                let real = 0;
+                
+                indices.forEach(i => {
+                    const input = document.getElementById('g' + i);
+                    if (input && input.value) {
+                        real += parseFloat(input.value) || 0;
+                    }
+                });
+                
+                const diferencia = presupuesto - real;
+                datosActuales.push([categoria, presupuesto, real, diferencia]);
+            }
+            
+            datosActuales.push(['', '', '', '']);
+            datosActuales.push(['TOTAL', 12869, calcularTotalReal(), 9400 - calcularTotalReal()]);
+            
+            const ws1 = XLSX.utils.aoa_to_sheet(datosActuales);
+            XLSX.utils.book_append_sheet(wb, ws1, mesActual);
+            
+            // Hoja 2: Comparativo todos los meses
+            const comparativo = [];
+            comparativo.push(['Mes', 'Total Gastado', 'Saldo', '% Ejecutado']);
+            
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            
+            meses.forEach(mes => {
+                if (datos[mes]) {
+                    let totalMes = 0;
+                    for (let i = 1; i <= 26; i++) {
+                        if (datos[mes]['g' + i]) {
+                            totalMes += datos[mes]['g' + i];
+                        }
+                    }
+                    const saldo = 9400 - totalMes;
+                    const porcentaje = ((totalMes / 12869) * 100).toFixed(1);
+                    comparativo.push([mes, totalMes, saldo, porcentaje + '%']);
+                }
+            });
+            
+            const ws2 = XLSX.utils.aoa_to_sheet(comparativo);
+            XLSX.utils.book_append_sheet(wb, ws2, 'Comparativo');
+            
+            // Descargar archivo
+            XLSX.writeFile(wb, `Presupuesto_Familiar_${mesActual}_${new Date().getFullYear()}.xlsx`);
+        }
+
+        // Toggle Dashboard
+        function toggleDashboard() {
+            dashboardVisible = !dashboardVisible;
+            const dashboard = document.getElementById('dashboard');
+            const btn = document.getElementById('btnDashboard');
+            
+            if (dashboardVisible) {
+                dashboard.style.display = 'block';
+                btn.textContent = '📊 Ocultar Dashboard';
+                actualizarDashboard();
+            } else {
+                dashboard.style.display = 'none';
+                btn.textContent = '📈 Ver Dashboard';
+            }
+        }
+
+        // Actualizar Dashboard
+        function actualizarDashboard() {
+            actualizarKPIs();
+            actualizarGraficos();
+            actualizarAlertas();
+        }
+
+        // Actualizar KPIs
+        function actualizarKPIs() {
+            const totalReal = calcularTotalReal();
+            const porcentajeEjecutado = ((totalReal / 12869) * 100).toFixed(1);
+            
+            document.getElementById('porcentajeEjecutado').textContent = porcentajeEjecutado + '%';
+            
+            // Categoría con mayor gasto
+            let mayorGastoCategoria = '';
+            let mayorGastoValor = 0;
+            
+            for (const [categoria, indices] of Object.entries(categorias)) {
+                let totalCategoria = 0;
+                indices.forEach(i => {
+                    const input = document.getElementById('g' + i);
+                    if (input && input.value) {
+                        totalCategoria += parseFloat(input.value) || 0;
+                    }
+                });
+                
+                if (totalCategoria > mayorGastoValor) {
+                    mayorGastoValor = totalCategoria;
+                    mayorGastoCategoria = categoria;
+                }
+            }
+            
+            document.getElementById('mayorGasto').textContent = mayorGastoCategoria || '-';
+            
+            // Días restantes del mes
+            const hoy = new Date();
+            const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+            const diasRestantes = ultimoDiaMes - hoy.getDate();
+            document.getElementById('diasRestantes').textContent = diasRestantes;
+            
+            // Ritmo de gasto diario
+            const diasTranscurridos = hoy.getDate();
+            const ritmoGasto = diasTranscurridos > 0 ? (totalReal / diasTranscurridos).toFixed(0) : 0;
+            document.getElementById('ritmoGasto').textContent = 'S/ ' + ritmoGasto;
+        }
+
+        // Actualizar Gráficos
+        function actualizarGraficos() {
+            actualizarGraficoCategorias();
+            actualizarGraficoPresupuesto();
+            actualizarGraficoTendencias();
+        }
+
+        // Gráfico de categorías
+        function actualizarGraficoCategorias() {
+            const ctx = document.getElementById('graficoCategorias').getContext('2d');
+            
+            if (graficoCategorias) {
+                graficoCategorias.destroy();
+            }
+            
+            const labels = [];
+            const valores = [];
+            const colores = ['#343a40', '#dc3545', '#007bff', '#28a745', '#6f42c1', '#17a2b8', '#fd7e14', '#e83e8c', '#20c997', '#6c757d'];
+            
+            let colorIndex = 0;
+            for (const [categoria, indices] of Object.entries(categorias)) {
+                let total = 0;
+                indices.forEach(i => {
+                    const input = document.getElementById('g' + i);
+                    if (input && input.value) {
+                        total += parseFloat(input.value) || 0;
+                    }
+                });
+                
+                if (total > 0) {
+                    labels.push(categoria);
+                    valores.push(total);
+                }
+            }
+            
+            graficoCategorias = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: colores.slice(0, labels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico presupuesto vs real
+        function actualizarGraficoPresupuesto() {
+            const ctx = document.getElementById('graficoPresupuesto').getContext('2d');
+            
+            if (graficoPresupuesto) {
+                graficoPresupuesto.destroy();
+            }
+            
+            const labels = [];
+            const presupuestados = [];
+            const reales = [];
+            
+            for (const [categoria, indices] of Object.entries(categorias)) {
+                let totalReal = 0;
+                indices.forEach(i => {
+                    const input = document.getElementById('g' + i);
+                    if (input && input.value) {
+                        totalReal += parseFloat(input.value) || 0;
+                    }
+                });
+                
+                if (totalReal > 0 || presupuestoPorCategoria[categoria] > 0) {
+                    labels.push(categoria);
+                    presupuestados.push(presupuestoPorCategoria[categoria]);
+                    reales.push(totalReal);
+                }
+            }
+            
+            graficoPresupuesto = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Presupuestado',
+                            data: presupuestados,
+                            backgroundColor: '#007bff80',
+                            borderColor: '#007bff',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Real',
+                            data: reales,
+                            backgroundColor: '#dc354580',
+                            borderColor: '#dc3545',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico de tendencias
+        function actualizarGraficoTendencias() {
+            const ctx = document.getElementById('graficoTendencias').getContext('2d');
+            
+            if (graficoTendencias) {
+                graficoTendencias.destroy();
+            }
+            
+            const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            
+            const labels = [];
+            const gastados = [];
+            const saldos = [];
+            
+            meses.forEach(mes => {
+                if (datos[mes]) {
+                    let totalMes = 0;
+                    for (let i = 1; i <= 26; i++) {
+                        if (datos[mes]['g' + i]) {
+                            totalMes += datos[mes]['g' + i];
+                        }
+                    }
+                    labels.push(mes);
+                    gastados.push(totalMes);
+                    saldos.push(9400 - totalMes);
+                }
+            });
+            
+            graficoTendencias = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Gastado',
+                            data: gastados,
+                            borderColor: '#dc3545',
+                            backgroundColor: '#dc354520',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Saldo',
+                            data: saldos,
+                            borderColor: '#28a745',
+                            backgroundColor: '#28a74520',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Actualizar alertas inteligentes
+        function actualizarAlertas() {
+            const alertas = [];
+            const totalReal = calcularTotalReal();
+            const saldo = 9400 - totalReal;
+            
+            // Alerta de presupuesto excedido
+            if (saldo < 0) {
+                alertas.push(`🔴 Presupuesto excedido por S/ ${Math.abs(saldo).toLocaleString()}`);
+            }
+            
+            // Alerta de ritmo de gasto
+            const hoy = new Date();
+            const diasTranscurridos = hoy.getDate();
+            const ritmoActual = totalReal / diasTranscurridos;
+            const ritmoNecesario = 9400 / 30; // Asumiendo 30 días por mes
+            
+            if (ritmoActual > ritmoNecesario * 1.2) {
+                alertas.push(`⚠️ Ritmo de gasto muy alto: S/ ${ritmoActual.toFixed(0)}/día vs S/ ${ritmoNecesario.toFixed(0)}/día recomendado`);
+            }
+            
+            // Alertas por categoría
+            for (const [categoria, indices] of Object.entries(categorias)) {
+                let totalCategoria = 0;
+                indices.forEach(i => {
+                    const input = document.getElementById('g' + i);
+                    if (input && input.value) {
+                        totalCategoria += parseFloat(input.value) || 0;
+                    }
+                });
+                
+                const presupuestoCategoria = presupuestoPorCategoria[categoria];
+                if (totalCategoria > presupuestoCategoria * 1.1) {
+                    const exceso = totalCategoria - presupuestoCategoria;
+                    alertas.push(`📊 ${categoria}: Excedido en S/ ${exceso.toFixed(0)} (${((exceso/presupuestoCategoria)*100).toFixed(1)}%)`);
+                }
+            }
+            
+            // Mostrar alertas
+            const contenidoAlertas = document.getElementById('contenidoAlertas');
+            if (alertas.length === 0) {
+                contenidoAlertas.innerHTML = '<div style="color: #28a745;">✅ Todo está bajo control</div>';
+            } else {
+                contenidoAlertas.innerHTML = alertas.map(alerta => `<div style="margin-bottom: 8px;">${alerta}</div>`).join('');
+            }
+        }
+
+        // Función auxiliar para calcular total real
+        function calcularTotalReal() {
+            let total = 0;
+            for (let i = 1; i <= 26; i++) {
+                const input = document.getElementById('g' + i);
+                if (input && input.value) {
+                    total += parseFloat(input.value) || 0;
+                }
+            }
+            return total;
         }
 
         // Inicializar
@@ -417,7 +864,7 @@
             }
             
             if (hayDatos) {
-                localStorage.setItem('presupuesto-simple', JSON.stringify(datos));
+                localStorage.setItem('presupuesto-dashboard', JSON.stringify(datos));
             }
         }, 30000);
     </script>
